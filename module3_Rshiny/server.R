@@ -6,10 +6,12 @@ library(lattice)
 library(dplyr)
 library(magrittr)
 library(plotly)
+library(leafletCN)
 
 # Leaflet bindings are a bit slow; for now we'll just sample to compensate
 set.seed(100)
-business_data <- business.df[sample.int(nrow(business.df), 60000),]
+business.df=read.csv("business_steakhouse.csv")
+business_data <- business.df[sample.int(nrow(business.df), 60),]
 # By ordering by centile, we ensure that the (comparatively rare) SuperZIPs
 # will be drawn last and thus be easier to see
 business_data <- business_data[order(business.df$stars),]
@@ -18,7 +20,7 @@ cleantable <- business_data %>%
   select(
     City = city,
     State = state,
-    Zipcode = zip_code,
+    Zipcode = postal_code,
     Stars = stars,
     Lat = latitude,
     Long = longitude
@@ -31,10 +33,11 @@ shinyServer(function(input, output, session) {
   # Create the map
   output$map <- renderLeaflet({
     leaflet() %>%
-      addTiles(
-        urlTemplate = "//{s}.tiles.mapbox.com/v3/jcheng.map-5ebohr46/{z}/{x}/{y}.png",
-        attribution = 'Maps by <a href="http://www.mapbox.com/">Mapbox</a>'
-      ) %>%
+      addProviderTiles(providers$OpenStreetMap) %>% 
+      #addTiles(
+      #  urlTemplate = "//{s}.tiles.mapbox.com/v3/jcheng.map-5ebohr46/{z}/{x}/{y}.png",
+      #  attribution = 'Maps by <a href="http://www.mapbox.com/">Mapbox</a>'
+      #) %>%
       setView(lng = -93.85, lat = 37.45, zoom = 4)
   })
   
@@ -182,7 +185,7 @@ shinyServer(function(input, output, session) {
     
     leafletProxy("map", data = zipsIFiltered()) %>%
       clearShapes() %>%
-      addCircles(~longitude, ~latitude, radius=radius, layerId=~zip_code,
+      addCircles(~longitude, ~latitude, radius=radius, layerId=~postal_code,
                  stroke=FALSE, fillOpacity=0.4, fillColor=pal(colorData)) %>%
       addLegend("bottomleft", pal=pal, values=colorData, title=colorBy,
                 layerId="colorLegend")
@@ -203,7 +206,7 @@ shinyServer(function(input, output, session) {
   
   # Show a popup at the given location
   showZipcodePopup <- function(zipcode, lat, lng) {
-    selectedZip <- business_data[business_data$zip_code == zipcode,]
+    selectedZip <- business_data[business_data$postal_code == zipcode,]
     content <- as.character(tagList(
       tags$h4(as.character(selectedZip$name)),
       tags$h5("Categories:", as.character(selectedZip$categories)),

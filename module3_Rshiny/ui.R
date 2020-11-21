@@ -1,7 +1,7 @@
 library(shiny)
 library(leaflet)
 library(plotly)
-
+library(DT)
 
 # Choices for drop-downs
 color_vars <- c(
