@@ -21,15 +21,43 @@ id1<-as.vector(poss$business_id)
 id2<-as.vector(negg$business_id)
 
 
+
 #pos_topics = {0:'Menu/Bar/Happy hour', 1:'Other main dishes and stype',
 # 2:'Service and atmosphere', 3:'Quality of steaks'}
 #neg_topics = {0:'Service/Bar/Menu', 1:"Temperature of Steaks" , 2:'Service time', 
 # 3:'Quality of other sides and snacks'}
 
-steak<-cbind(poss,negg[7:10])
+steak<-cbind(poss[1:10],negg[7:10],poss[11],negg[11])
 steak[,1]<-c(1:dim(steak)[1])
-names(steak)<-c("index","businessid","name",'city','state','stars','v1','v2','v3','v4','v5','v6','v7','v8')
-pairs(steak[6:14])
+for(i in 1:dim(steak)[1]){
+  if(as.vector(steak$state[i])=="PA"){
+    steak[i,17]=1
+  }else{
+    steak[i,17]=0
+  }
+}
+for(i in 1:dim(steak)[1]){
+  if(as.vector(steak$state[i])=="OH"){
+    steak[i,18]=1
+  }else{
+    steak[i,18]=0
+  }
+}
+for(i in 1:dim(steak)[1]){
+  if(as.vector(steak$state[i])=="IL"){
+    steak[i,19]=1
+  }else{
+    steak[i,19]=0
+  }
+}
+names(steak)<-c("index","businessid","name",'city','state','stars','v1','v2','v3','v4','v5','v6','v7','v8','postext','negtext','pa','oh','il')
+for(i in 11:14){
+  steak[,i]<-steak[,i]*steak$negtext/(steak$postext+steak$negtext)
+}
+for(i in 7:10){
+  steak[,i]<-steak[,i]*steak$postext/(steak$postext+steak$negtext)
+}
+
 
 par(mfrow=c(2,4),mar=c(4,4,2,2))
 
@@ -41,11 +69,24 @@ for (i in 7:14) {
 #142,85,262
 steak_rm<-steak[-c(142,85,262),]
 
+######EDA part
+
+pairs(steak[6:14])
+#histograms in notebook
+histogram(steak$stars~steak$v1)
+
+
+
+
+
+
+
 ##########MLR model###########################
 
 
 ###stepwise selection
 fit1<-lm(stars~.,data = steak[,6:14])
+fit2<-lm(stars~(v1+v2+v3+v4+v5+v6+v7+v8)*(1+pa+oh+il),data = steak[,6:17])
 fitnull<-lm(stars~1,data = steak[,6:14])
 summary(fit1)
 n=9
@@ -66,13 +107,19 @@ vif(m1)
 set.seed(100)
 training.samples <- steak$stars %>%
   createDataPartition(p = 0.8, list = FALSE)
-train.data  <- steak[training.samples, 6:14]
-test.data <- steak[-training.samples, 6:14]
+train.data  <- steak_rm[training.samples, 6:14]
+test.data <- steak_rm[-training.samples, 6:14]
+
+train.data  <- steak[training.samples, 6:17]
+test.data <- steak[-training.samples, 6:17]
 # Build the model
 
 model1 <- lm(formula = stars~v3+v4+v5+v7, data = train.data)
 model2<-lm(formula = stars~v1+v3+v4+v5+v7, data = train.data)
-
+model1<-lm(formula = stars ~ v1 + v2 + v3 + v4 + v5 + v6 + v7 + pa + 
+             oh + il + v1:pa + v2:pa + v2:oh + v2:il + v3:pa + v3:il + 
+             v4:pa + v5:pa + v5:il + v6:pa + v6:oh + v6:il + v7:pa + v7:il, 
+           data = train.data)
 # Make predictions and compute the R2, RMSE and MAE
 predictions <- model1 %>% predict(test.data)
 results1<-data.frame( R2 = R2(predictions, test.data$stars),
@@ -127,7 +174,7 @@ colnames(rel)<-c("R2","RMSE","MAE")
 #ci
 #confint(myfit)
 
-
+myfit<-model1
 ##########Diagnostics#########################
 par(mfrow=c(1,1))
 ##check normality
@@ -172,7 +219,7 @@ n <- dim(model.matrix(myfit))[1]
 p <- dim(model.matrix(myfit))[2] 
 plot(myinfluence$hat,type = "n") 
 abline(h=2*p/n, col="red")
-text(myinfluence$hat,label=newbf[,1],col="darkblue")
+text(myinfluence$hat,label=steak[,1],col="darkblue")
 # 2. Identifying Influential Observations
 # DFFITS
 dffits(myfit)
