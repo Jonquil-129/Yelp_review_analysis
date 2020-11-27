@@ -66,23 +66,49 @@ for (i in 7:14) {
   bvbox(cbind(steak[,i],steak[,6]),col="white",xlab = colnames(steak)[i],ylab="stars")
   text(steak[,i],steak[,6],label=steak$index,col="plum4")
 }
-#142,85,262
+
+###123 high leverage & influential point (no outlier deleted at first)
+###263 outlier in residual
+
+#142
 steak_rm<-steak[-c(142,85,262),]
+
+
+
 
 ######EDA part
 
 pairs(steak[6:14])
 #histograms in notebook
-histogram(steak$stars~steak$v1)
+par(mfrow=c(2,4),mar=c(4,4,2,2))
 
-
+for (i in 7:14) {
+  histogram(stars~steak[,i],data = steak[,6:14])
+}
 
 
 
 
 
 ##########MLR model###########################
+###all possible subsets
+if (!require("leaps")) { 
+  install.packages("leaps") 
+  stopifnot(require("leaps"))
+}
+options(width = 90) # just for better views (not required)
+myleaps <- regsubsets(stars~.,data = steak[,6:14], nbest=8) 
+(myleaps.summary <- summary(myleaps)) 
 
+bettertable <- cbind(myleaps.summary$which, myleaps.summary$rsq, myleaps.summary$rss,
+                     myleaps.summary$adjr2, myleaps.summary$cp, myleaps.summary$bic) 
+dimnames(bettertable)[[2]] <- c(dimnames(myleaps.summary$which)[[2]],"rsq", "rss", "adjr2", "cp", "bic")
+show(bettertable)
+par(mfrow=c(1,3), pty="s")
+plot(myleaps, scale = "adjr2"); plot(myleaps, scale = "Cp"); plot(myleaps, scale = "bic");                                                                                          show(bettertable)
+
+m3<-lm(stars~v2+v5+v6+v7+v8,data = steak[,6:14])
+m4<-lm(stars~v5+v6+v7+v8,data = steak[,6:14])
 
 ###stepwise selection
 fit1<-lm(stars~.,data = steak[,6:14])
@@ -92,12 +118,13 @@ summary(fit1)
 n=9
 m1<-step(fit1,direction = "both",k=log(n))
 
-m2<-step(fit1,direction = "both",k=2)
+m2<-step(fit1,direction = "backward",k=log(n))
 
 summary(m1)
-anova(m1,m2)
-anova(m1)
+anova(m4,m1)
+#########*********final model: m1***********
 
+anova(m1)
 
 
 vif(m1)
@@ -107,15 +134,15 @@ vif(m1)
 set.seed(100)
 training.samples <- steak$stars %>%
   createDataPartition(p = 0.8, list = FALSE)
-train.data  <- steak_rm[training.samples, 6:14]
-test.data <- steak_rm[-training.samples, 6:14]
+train.data  <- steak[training.samples, 6:14]
+test.data <- steak[-training.samples, 6:14]
 
 train.data  <- steak[training.samples, 6:17]
 test.data <- steak[-training.samples, 6:17]
 # Build the model
 
-model1 <- lm(formula = stars~v3+v4+v5+v7, data = train.data)
-model2<-lm(formula = stars~v1+v3+v4+v5+v7, data = train.data)
+model1 <- lm(formula = stars~v2+v5+v6+v7+v8, data = train.data)
+model2<-lm(formula = stars~v5+v6+v7+v8, data = train.data)
 model1<-lm(formula = stars ~ v1 + v2 + v3 + v4 + v5 + v6 + v7 + pa + 
              oh + il + v1:pa + v2:pa + v2:oh + v2:il + v3:pa + v3:il + 
              v4:pa + v5:pa + v5:il + v6:pa + v6:oh + v6:il + v7:pa + v7:il, 
@@ -130,19 +157,7 @@ results2<-data.frame( R2 = R2(predictions, test.data$stars),
                       RMSE = RMSE(predictions, test.data$stars),
                       MAE = MAE(predictions, test.data$stars))
 
-#predictions <- model_r2 %>% predict(test.data)
-#results3<-data.frame( R2 = R2(predictions, test.data$BODYFAT),
-#                      RMSE = RMSE(predictions, test.data$BODYFAT),
-#                      MAE = MAE(predictions, test.data$BODYFAT))
-#predictions <- model_cp %>% predict(test.data)
-#results4<-data.frame( R2 = R2(predictions, test.data$BODYFAT),
-#                      RMSE = RMSE(predictions, test.data$BODYFAT),
-#                      MAE = MAE(predictions, test.data$BODYFAT))
-#predictions <- model_bic %>% predict(test.data)
-#results5<-data.frame( R2 = R2(predictions, test.data$BODYFAT),
-#                      RMSE = RMSE(predictions, test.data$BODYFAT),
-#                      MAE = MAE(predictions, test.data$BODYFAT))
-#results<-rbind(results1,results2,results3,results4,results5)
+
 
 #lasso
 x_var<-as.matrix(train.data[,-1])
@@ -164,17 +179,15 @@ rel<-data.frame( R2 = R2(pred, test.data$stars),
 colnames(rel)<-c("R2","RMSE","MAE")
 
 (results<-rbind(results1,results2,rel))
-####By comparison, we chose our final model: BODYFAT ~ AGE + ADIPOSITY + CHEST + ABDOMEN + WRIST + AGE:WRIST + ADIPOSITY:CHEST
 
-#myfit<-lm(BODYFAT~AGE + ADIPOSITY + CHEST + ABDOMEN + WRIST + AGE:WRIST + ADIPOSITY:CHEST,data=newbf[,-1])
-#anova(m4,m1)
-#anova(m1)
+
 #summary(myfit)
-#car::Anova(myfit)
-#ci
-#confint(myfit)
-
 myfit<-model1
+car::Anova(myfit)
+#ci
+confint(myfit)
+
+
 ##########Diagnostics#########################
 par(mfrow=c(1,1))
 ##check normality
@@ -226,7 +239,7 @@ dffits(myfit)
 plot(dffits(myfit),type = "n")
 abline(h=1, col="red") 
 abline(h=2*sqrt(p/n), col="green")
-text(dffits(myfit),label=newbf[,1],col="darkblue")
+text(dffits(myfit),label=steak[,1],col="darkblue")
 # Cook's distance
 cooks.distance(myfit)
 plot(myfit, which = 4) 
@@ -235,13 +248,13 @@ abline(h=1, col="red")
 abline(h=qf(0.5, p, n-p), col="green") 
 abline(h=4/n, col="blue") 
 abline(h=4/(n-p-1-1), col="orange")
-text(cooks.distance(myfit),label=newbf[,1],col="darkblue")
+text(cooks.distance(myfit),label=steak[,1],col="darkblue")
 # DFBETAS
 dfbetas(myfit)
 plot(dfbetas(myfit)[,2],type = "n") # DFBETAS_{1(i)} 
 abline(h=1, col="red")
 abline(h=2/sqrt(n), col="blue")
-text(dfbetas(myfit)[,2],label=newbf[,1],col="darkblue")
+text(dfbetas(myfit)[,2],label=steak[,1],col="darkblue")
 
 par(mfrow=c(2,2),mar=c(4,1,1,1))
 qqnorm(rstandard(myfit),pch=19,cex=1.2,cex.lab=1.2,cex.main=1.2,
