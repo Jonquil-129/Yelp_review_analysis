@@ -9,13 +9,15 @@ neg<-read.csv('neg_bsns.csv')
 bus1<-pos$business_id
 bus2<-neg$business_id
 for (i in 1:length(bus2)) {
-  if(bus2[i]%in%bus1){
+  if(!bus2[i]%in%bus1){
     print(i)
   }
 }
 out1in2<-bus1[225]
 out2in1<-bus2[c(58,198)]
+pos[,1]<-c(1:dim(pos)[1])
 poss<-pos[-225,]
+
 negg<-neg[-c(58,198),]
 id1<-as.vector(poss$business_id)
 id2<-as.vector(negg$business_id)
@@ -28,7 +30,7 @@ id2<-as.vector(negg$business_id)
 # 3:'Quality of other sides and snacks'}
 
 steak<-cbind(poss[1:10],negg[7:10],poss[11],negg[11])
-steak[,1]<-c(1:dim(steak)[1])
+
 for(i in 1:dim(steak)[1]){
   if(as.vector(steak$state[i])=="PA"){
     steak[i,17]=1
@@ -71,19 +73,20 @@ for (i in 7:14) {
 ###263 outlier in residual
 
 #142
-steak_rm<-steak[-c(142,85,262),]
+steak_rm<-steak[-c(142,263),]
+
 
 
 
 
 ######EDA part
 
-pairs(steak[6:14])
+pairs(steak_rm[6:14])
 #histograms in notebook
 par(mfrow=c(2,4),mar=c(4,4,2,2))
 
 for (i in 7:14) {
-  histogram(stars~steak[,i],data = steak[,6:14])
+  histogram(stars~steak[,i],data = steak_rm[,6:14])
 }
 
 
@@ -97,7 +100,7 @@ if (!require("leaps")) {
   stopifnot(require("leaps"))
 }
 options(width = 90) # just for better views (not required)
-myleaps <- regsubsets(stars~.,data = steak[,6:14], nbest=8) 
+myleaps <- regsubsets(stars~.,data = steak_rm[,6:14], nbest=8) 
 (myleaps.summary <- summary(myleaps)) 
 
 bettertable <- cbind(myleaps.summary$which, myleaps.summary$rsq, myleaps.summary$rss,
@@ -107,15 +110,16 @@ show(bettertable)
 par(mfrow=c(1,3), pty="s")
 plot(myleaps, scale = "adjr2"); plot(myleaps, scale = "Cp"); plot(myleaps, scale = "bic");                                                                                          show(bettertable)
 
-m3<-lm(stars~v2+v5+v6+v7+v8,data = steak[,6:14])
+m3<-lm(stars~v2+v5+v6+v7+v8,data = steak_rm[,6:14])
 m4<-lm(stars~v5+v6+v7+v8,data = steak[,6:14])
 
 ###stepwise selection
 fit1<-lm(stars~.,data = steak[,6:14])
+fit1<-lm(stars~.,data = steak_rm[,6:14])
 fit2<-lm(stars~(v1+v2+v3+v4+v5+v6+v7+v8)*(1+pa+oh+il),data = steak[,6:17])
 fitnull<-lm(stars~1,data = steak[,6:14])
 summary(fit1)
-n=9
+n<-dim(steak_rm)[1]
 m1<-step(fit1,direction = "both",k=log(n))
 
 m2<-step(fit1,direction = "backward",k=log(n))
@@ -137,8 +141,10 @@ training.samples <- steak$stars %>%
 train.data  <- steak[training.samples, 6:14]
 test.data <- steak[-training.samples, 6:14]
 
-train.data  <- steak[training.samples, 6:17]
-test.data <- steak[-training.samples, 6:17]
+training.samples <- steak_rm$stars %>%
+  createDataPartition(p = 0.8, list = FALSE)
+train.data  <- steak_rm[training.samples, 6:17]
+test.data <- steak_rm[-training.samples, 6:17]
 # Build the model
 
 model1 <- lm(formula = stars~v2+v5+v6+v7+v8, data = train.data)
@@ -160,7 +166,7 @@ results2<-data.frame( R2 = R2(predictions, test.data$stars),
 
 
 #lasso
-x_var<-as.matrix(train.data[,-1])
+x_var<-as.matrix(train.data[,-c(1,10:12)])
 y_var<-train.data$stars
 lambda_seq <- 10^seq(2, -2, by = -.1)
 c<-glmnet(x_var, y_var , standardize=TRUE, alpha=1)
@@ -170,7 +176,7 @@ cv_output <- cv.glmnet(x_var, y_var,
 best_lam <- cv_output$lambda.min
 best_lam
 lasso_best <- glmnet(x_var, y_var, alpha = 1, lambda = best_lam)
-pred <- predict(lasso_best, s = best_lam, newx = as.matrix(test.data[,-1]))
+pred <- predict(lasso_best, s = best_lam, newx = as.matrix(test.data[,-c(1,10:12)]))
 final <- cbind(test.data$stars, pred)
 coef(lasso_best)
 rel<-data.frame( R2 = R2(pred, test.data$stars),
@@ -178,11 +184,11 @@ rel<-data.frame( R2 = R2(pred, test.data$stars),
                  MAE = MAE(pred, test.data$stars))
 colnames(rel)<-c("R2","RMSE","MAE")
 
-(results<-rbind(results1,results2,rel))
+(results<-rbind(results1,rel))
 
 
 #summary(myfit)
-myfit<-model1
+myfit<-m1
 car::Anova(myfit)
 #ci
 confint(myfit)
@@ -194,7 +200,7 @@ par(mfrow=c(1,1))
 qqnorm(rstandard(myfit),pch=19,cex=1.2,cex.lab=1.5,cex.main=1.5,
        main="Normal Q-Q Plot of the Residuals")
 abline(a=0,b=1,col="black",lwd=3)
-
+text(qqnorm(rstandard(myfit)),labels = steak_rm[,1])#########212,53,135 in steak
 # 1. Types of Residuals and Identifying Outliers
 # compare residuals (raw, standardized, studentized)
 cbind(resid(myfit), rstandard(myfit), rstudent(myfit))
@@ -227,19 +233,20 @@ p <- dim(model.matrix(myfit))[2]
 alpha <- 0.05
 t.critical <- qt(1-alpha/(2*n), n-p-1) # Bonferroni correction 
 abline(h=c(-t.critical, t.critical), col="green")
+text(myfit$fitted.values, rstudent(myfit),label=steak_rm[,1])
 # Outlying in X
 n <- dim(model.matrix(myfit))[1] 
 p <- dim(model.matrix(myfit))[2] 
 plot(myinfluence$hat,type = "n") 
 abline(h=2*p/n, col="red")
-text(myinfluence$hat,label=steak[,1],col="darkblue")
+text(myinfluence$hat,label=steak_rm[,1],col="darkblue")
 # 2. Identifying Influential Observations
 # DFFITS
 dffits(myfit)
 plot(dffits(myfit),type = "n")
 abline(h=1, col="red") 
 abline(h=2*sqrt(p/n), col="green")
-text(dffits(myfit),label=steak[,1],col="darkblue")
+text(dffits(myfit),label=steak_rm[,1],col="darkblue")
 # Cook's distance
 cooks.distance(myfit)
 plot(myfit, which = 4) 
