@@ -11,13 +11,14 @@ library(leafletCN)
 # Leaflet bindings are a bit slow; for now we'll just sample to compensate
 set.seed(100)
 business.df=read.csv("business_steakhouse.csv")
-business_data <- business.df[sample.int(nrow(business.df), 60),]
-# By ordering by centile, we ensure that the (comparatively rare) SuperZIPs
-# will be drawn last and thus be easier to see
-business_data <- business_data[order(business.df$stars),]
+# business_data <- business.df[sample.int(nrow(business.df), 60),]
+# # By ordering by centile, we ensure that the (comparatively rare) SuperZIPs
+# # will be drawn last and thus be easier to see
+# business_data <- business_data[order(business.df$stars),]
 
-cleantable <- business_data %>%
+cleantable <- business.df %>%
   select(
+    Name= name,
     City = city,
     State = state,
     Zipcode = postal_code,
@@ -32,12 +33,13 @@ shinyServer(function(input, output, session) {
   
   # Create the map
   output$map <- renderLeaflet({
-    leaflet() %>%
+    leaflet(data=business.df) %>%
       addProviderTiles(providers$OpenStreetMap) %>% 
       #addTiles(
       #  urlTemplate = "//{s}.tiles.mapbox.com/v3/jcheng.map-5ebohr46/{z}/{x}/{y}.png",
       #  attribution = 'Maps by <a href="http://www.mapbox.com/">Mapbox</a>'
       #) %>%
+      addMarkers(~longitude, ~latitude, popup = ~name, label = ~name)  %>% 
       setView(lng = -93.85, lat = 37.45, zoom = 4)
   })
   
@@ -50,181 +52,193 @@ shinyServer(function(input, output, session) {
     latRng <- range(bounds$north, bounds$south)
     lngRng <- range(bounds$east, bounds$west)
     
-    subset(business_data,
+    subset(business.df,
            latitude >= latRng[1] & latitude <= latRng[2] &
              longitude >= lngRng[1] & longitude <= lngRng[2])
   })
   
   # Filter the business, returning a data frame
-  zipsIFiltered<- reactive({
-    # Due to dplyr issue #318, we need temp variables for input values
-    reviews <- input$reviews
-    stars_input <- input$stars
-
-    # Apply filters
-    m <- subset(zipsInBounds(),
-                review_count >= reviews &
-                  stars >= stars_input)
-    
-    # Filter by category
-    if (input$business_category != "All") {
-      m <- m[which(grepl(input$business_category, m$categories)), ]
-    }else
-      m <- m
-    
-    # Filter open business
-    if (input$open_checkbox==TRUE) {
-      m <- m[which(m$open==TRUE), ]
-    }else
-      m <- m[which(m$open==FALSE), ]
-    
-  })
+  # zipsIFiltered<- reactive({
+  #   # Due to dplyr issue #318, we need temp variables for input values
+  #   reviews <- input$reviews
+  #   stars_input <- input$stars
+  # 
+  #   # Apply filters
+  #   m <- subset(zipsInBounds(),
+  #               review_count >= reviews &
+  #                 stars >= stars_input)
+  #   
+  #   # Filter by category
+  #   if (input$business_category != "All") {
+  #     m <- m[which(grepl(input$business_category, m$categories)), ]
+  #   }else
+  #     m <- m
+  #   
+  #   # Filter open business
+  #   # if (input$open_checkbox==TRUE) {
+  #   #   m <- m[which(m$open==TRUE), ]
+  #   # }else
+  #   #   m <- m[which(m$open==FALSE), ]
+  #   
+  # })
+  # 
+  # output$histRanking <- renderPlotly({
+  #   colorBy <- input$color
+  #   colorData <- zipsIFiltered()[[colorBy]]
+  #   
+  #   if (nrow(zipsIFiltered()) == 0)
+  #     return(NULL)
+  #   
+  #   pal<-colorPalette(colorData,colorBy)
+  # 
+  #   labelx <- paste(input$business_category, "business", input$color , "(visible business)", sep=" ")
+  #   ax <- list(
+  #     title = labelx,
+  #     showticklabels = TRUE
+  #   )
+  #   
+  #   ay <- list(
+  #     title = input$size,
+  #     showticklabels = TRUE
+  #   )
+  #   
+  #   p<-plot_ly(zipsIFiltered(),type = "bar", x = zipsIFiltered()[[input$color]], y = zipsIFiltered()[[input$size]], 
+  #          marker= list(color=pal(colorData)), size = zipsIFiltered()[[input$size]],showscale = FALSE)%>%
+  #          layout(xaxis = ax, yaxis = ay)
+  #   
+  # })
   
-  output$histRanking <- renderPlotly({
-    colorBy <- input$color
-    colorData <- zipsIFiltered()[[colorBy]]
-    
-    if (nrow(zipsIFiltered()) == 0)
-      return(NULL)
-    
-    pal<-colorPalette(colorData,colorBy)
-
-    labelx <- paste(input$business_category, "business", input$color , "(visible business)", sep=" ")
-    ax <- list(
-      title = labelx,
-      showticklabels = TRUE
-    )
-    
-    ay <- list(
-      title = input$size,
-      showticklabels = TRUE
-    )
-    
-    p<-plot_ly(zipsIFiltered(),type = "bar", x = zipsIFiltered()[[input$color]], y = zipsIFiltered()[[input$size]], 
-           marker= list(color=pal(colorData)), size = zipsIFiltered()[[input$size]],showscale = FALSE)%>%
-           layout(xaxis = ax, yaxis = ay)
-    
-  })
+  # output$scatterRanking <- renderPlotly({
+  #   colorBy <- input$color
+  #   colorData <- zipsIFiltered()[[colorBy]]
+  #   
+  #   if (nrow(zipsIFiltered()) == 0)
+  #     return(NULL)
+  #   
+  #   pal<-colorPalette(colorData,colorBy)
+  #   
+  #   labelx <- paste(input$business_category, "business", input$color , "(visible business)", sep=" ")
+  #   ax <- list(
+  #     title = labelx,
+  #     showticklabels = TRUE
+  #   )
+  #   
+  #   ay <- list(
+  #     title = input$size,
+  #     showticklabels = TRUE
+  #   )
+  #   
+  #   p<-plot_ly(zipsIFiltered(), x = zipsIFiltered()[[input$color]], y = zipsIFiltered()[[input$size]],
+  #          mode = "markers", color= colorData,colors = "Spectral" , size = zipsIFiltered()[[input$size]],showscale = FALSE)%>%
+  #   layout(xaxis = ax, yaxis = ay)
+  # })
   
-  output$scatterRanking <- renderPlotly({
-    colorBy <- input$color
-    colorData <- zipsIFiltered()[[colorBy]]
-    
-    if (nrow(zipsIFiltered()) == 0)
-      return(NULL)
-    
-    pal<-colorPalette(colorData,colorBy)
-    
-    labelx <- paste(input$business_category, "business", input$color , "(visible business)", sep=" ")
-    ax <- list(
-      title = labelx,
-      showticklabels = TRUE
-    )
-    
-    ay <- list(
-      title = input$size,
-      showticklabels = TRUE
-    )
-    
-    p<-plot_ly(zipsIFiltered(), x = zipsIFiltered()[[input$color]], y = zipsIFiltered()[[input$size]],
-           mode = "markers", color= colorData,colors = "Spectral" , size = zipsIFiltered()[[input$size]],showscale = FALSE)%>%
-    layout(xaxis = ax, yaxis = ay)
-  })
-  
-  output$scatterRanking2 <- renderPlotly({
-    if (nrow(zipsIFiltered()) == 0)
-      return(NULL)
-    
-    # Get total review count for the states
-    if(input$size=="Stars mark"){
-      review_by_state <- aggregate( stars ~ state, data = zipsIFiltered(), FUN = sum)
-      labelx <- paste(input$business_category, "business", input$color , "(visible business)", sep=" ")
-      ax <- list(
-        title = labelx,
-        showticklabels = TRUE
-      )
-      
-      ay <- list(
-        title = input$size,
-        showticklabels = TRUE
-      )
-      p<-plot_ly(review_by_state,type = "bar", x =state, y = stars,
-                 size = stars)%>%
-     layout(xaxis = ax, yaxis = ay)
-   }
-    else{
-      review_by_state <- aggregate( review_count ~ state, data = zipsIFiltered(), FUN = sum)
-      labelx <- paste(input$business_category, "business", input$color , "(visible business)", sep=" ")
-      ax <- list(
-        title = labelx,
-        showticklabels = TRUE
-      )
-      
-      ay <- list(
-        title = input$size,
-        showticklabels = TRUE
-      )
-      p<-plot_ly(review_by_state,type = "bar", x = state, y = review_count,
-                 size = review_count)%>%
-        layout(xaxis = ax, yaxis = ay)
-    }
-    
-  })
-  
-  # This observer is responsible for maintaining the circles and legend,
-  # according to the variables the user has chosen to map to color and size.
-  observe({
-    sizeBy <- input$size
-    sizeRange <- input$size_scale
-    colorBy <- input$color
-    
-    colorData <- zipsIFiltered()[[colorBy]]
-
-    pal<-colorPalette(colorData,colorBy)
-    radius <- zipsIFiltered()[[sizeBy]] * sizeRange 
-    
-    leafletProxy("map", data = zipsIFiltered()) %>%
-      clearShapes() %>%
-      addCircles(~longitude, ~latitude, radius=radius, layerId=~postal_code,
-                 stroke=FALSE, fillOpacity=0.4, fillColor=pal(colorData)) %>%
-      addLegend("bottomleft", pal=pal, values=colorData, title=colorBy,
-                layerId="colorLegend")
-  })
-  
-  
+  # output$scatterRanking2 <- renderPlotly({
+  #   if (nrow(zipsIFiltered()) == 0)
+  #     return(NULL)
+  #   
+  #   # Get total review count for the states
+  #   if(input$size=="Stars mark"){
+  #     review_by_state <- aggregate( stars ~ state, data = zipsIFiltered(), FUN = sum)
+  #     labelx <- paste(input$business_category, "business", input$color , "(visible business)", sep=" ")
+  #     ax <- list(
+  #       title = labelx,
+  #       showticklabels = TRUE
+  #     )
+  #     
+  #     ay <- list(
+  #       title = input$size,
+  #       showticklabels = TRUE
+  #     )
+  #     p<-plot_ly(review_by_state,type = "bar", x =state, y = stars,
+  #                size = stars)%>%
+  #    layout(xaxis = ax, yaxis = ay)
+  #  }
+  #   else{
+  #     review_by_state <- aggregate( review_count ~ state, data = zipsIFiltered(), FUN = sum)
+  #     labelx <- paste(input$business_category, "business", input$color , "(visible business)", sep=" ")
+  #     ax <- list(
+  #       title = labelx,
+  #       showticklabels = TRUE
+  #     )
+  #     
+  #     ay <- list(
+  #       title = input$size,
+  #       showticklabels = TRUE
+  #     )
+  #     p<-plot_ly(review_by_state,type = "bar", x = state, y = review_count,
+  #                size = review_count)%>%
+  #       layout(xaxis = ax, yaxis = ay)
+  #   }
+  #   
+  # })
+  # 
+  # # This observer is responsible for maintaining the circles and legend,
+  # # according to the variables the user has chosen to map to color and size.
+  # observe({
+  #   sizeBy <- input$size
+  #   sizeRange <- input$size_scale
+  #   colorBy <- input$color
+  #   
+  #   colorData <- zipsIFiltered()[[colorBy]]
+  # 
+  #   pal<-colorPalette(colorData,colorBy)
+  #   radius <- zipsIFiltered()[[sizeBy]] * sizeRange 
+  #   
+  #   leafletProxy("map", data = zipsIFiltered()) %>%
+  #     clearShapes() %>%
+  #     addCircles(~longitude, ~latitude, radius=radius, layerId=~postal_code,
+  #                stroke=FALSE, fillOpacity=0.4, fillColor=pal(colorData)) %>%
+  #     addLegend("bottomleft", pal=pal, values=colorData, title=colorBy,
+  #               layerId="colorLegend")
+  # })
+  # 
+  # 
   # When map is clicked, show a popup with city info
-  observe({
-    leafletProxy("map") %>% clearPopups()
-    event <- input$map_shape_click
-    if (is.null(event))
-      return()
-    
-    isolate({
-      showZipcodePopup(event$id, event$lat, event$lng)
-    })
-  })
+  # observe({
+  #   leafletProxy("map") %>% clearPopups()
+  #   event <- input$map_shape_click
+  #   if (is.null(event))
+  #     return()
+  #   
+  #   isolate({
+  #     showZipcodePopup(event$id, event$lat, event$lng)
+  #   })
+  # })
   
   # Show a popup at the given location
-  showZipcodePopup <- function(zipcode, lat, lng) {
-    selectedZip <- business_data[business_data$postal_code == zipcode,]
-    content <- as.character(tagList(
-      tags$h4(as.character(selectedZip$name)),
-      tags$h5("Categories:", as.character(selectedZip$categories)),
-      sprintf("Number of reviews: %s", as.integer(selectedZip$review_count)), tags$br(),
-      sprintf("Stars score: %s", as.integer(selectedZip$stars))
-    ))
-    leafletProxy("map") %>% addPopups(lng, lat, content, layerId = zipcode)
-  }
+  # showZipcodePopup <- function(zipcode, lat, lng) {
+  #   selectedZip <- business.df[business.df$postal_code == zipcode,]
+  #   content <- as.character(tagList(
+  #     tags$h4(as.character(selectedZip$name)),
+  #     tags$h5("Categories:", as.character(selectedZip$categories)),
+  #     sprintf("Number of reviews: %s", as.integer(selectedZip$review_count)), tags$br(),
+  #     sprintf("Stars score: %s", as.integer(selectedZip$stars))
+  #   ))
+  #   leafletProxy("map") %>% addPopups(lng, lat, content, layerId = zipcode)
+  # }
   
   # Calculate the color palette
-  colorPalette <- function(colorData, colorBy) {
-    if(colorBy=="stars" || colorBy=="review_count"){
-      pal <- colorBin("Spectral", colorData, 4, pretty=TRUE,alpha = FALSE)
-    }else{
-      pal <- colorBin("Spectral", colorData, 4, pretty=TRUE,alpha = FALSE)
-    }
-    return (pal)
-  }
+  # colorPalette <- function(colorData, colorBy) {
+  #   if(colorBy=="stars" || colorBy=="review_count"){
+  #     pal <- colorBin("Spectral", colorData, 4, pretty=TRUE,alpha = FALSE)
+  #   }else{
+  #     pal <- colorBin("Spectral", colorData, 4, pretty=TRUE,alpha = FALSE)
+  #   }
+  #   return (pal)
+  # }
+  
+  observeEvent(input$map_marker_click, {
+    click <- input$map_marker_click
+   # text<-paste("Lattitude ", click$lat, "Longtitude ", click$lng)
+   # text2 <- paste("YOUVE CLICKED THE MAP!!!",click$lat, click$lng)
+    
+    # proxy <- leafletProxy("map")
+    # proxy %>% clearPopups() %>%
+    #   addPopups(click$lng, click$lat, text)
+    
+    output$Click_text<-renderText({text2})
+  })
   
   ## Data Explorer ###########################################
   
@@ -270,7 +284,7 @@ shinyServer(function(input, output, session) {
   })
   
   output$ziptable <- DT::renderDataTable({
-    df <- cleantable %>%
+    df <- cleantable[,1:5] %>%
       filter(
         Stars >= input$minScore,
         Stars <= input$maxScore,
@@ -278,7 +292,7 @@ shinyServer(function(input, output, session) {
         is.null(input$cities) | City %in% input$cities,
         is.null(input$zipcodes) | Zipcode %in% input$zipcodes
       ) %>%
-      mutate(Action = paste('<a class="go-map" href="" data-lat="', Lat, '" data-long="', Long, '" data-zip="', Zipcode, '"><i class="fa fa-crosshairs"></i></a>', sep=""))
+      mutate(Action = paste('<a class="go-map" href="" data-zip="', Zipcode, '"><i class="fa fa-crosshairs"></i></a>', sep=""))
     action <- DT::dataTableAjax(session, df)
     
     DT::datatable(df, options = list(ajax = list(url = action)), escape = FALSE)

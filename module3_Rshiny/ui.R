@@ -4,28 +4,28 @@ library(plotly)
 library(DT)
 
 # Choices for drop-downs
-color_vars <- c(
-  "Stars mark" = "stars",
-  "Review count" = "review_count",
-  "Starts difference" = "stars_diff"
-)
+# color_vars <- c(
+#   "Stars mark" = "stars",
+#   "Review count" = "review_count",
+#   "Starts difference" = "stars_diff"
+# )
+# 
+# size_vars <- c(
+#   "Review count" = "review_count",
+#   "Stars mark" = "stars"
+# )
 
-size_vars <- c(
-  "Review count" = "review_count",
-  "Stars mark" = "stars"
-)
+# category_vars <- c(
+#    "All" = "All",
+#    "Restaurant" = "Restaurant",
+#    "Shopping" = "Shopping",
+#    "Health & Medical" = "Health & Medical",
+#    "Hotels" = "Hotels",
+#    "Home Services" = "Home Services",
+#    "Food"="Food"
+# )
 
-category_vars <- c(
-   "All" = "All",
-   "Restaurant" = "Restaurant",
-   "Shopping" = "Shopping",
-   "Health & Medical" = "Health & Medical",
-   "Hotels" = "Hotels",
-   "Home Services" = "Home Services",
-   "Food"="Food"
-)
-
-shinyUI(navbarPage("Yelp Business Reviews", id="nav",
+shinyUI(navbarPage("Yelp Reviews Analysis", id="nav",
 
   tabPanel("Interactive map",
     div(class="outer",
@@ -39,43 +39,55 @@ shinyUI(navbarPage("Yelp Business Reviews", id="nav",
       leafletOutput("map", width="100%", height="100%" ),
 
       # Shiny versions prior to 0.11 should use class="modal" instead.
-      absolutePanel(id = "controls", class = "panel panel-default", fixed = TRUE,
-        draggable = TRUE, top = 60, left = "auto", right = 20, bottom = "auto",
-        width = 330, height = "auto",
-        h4("Business explorer"),
+      # absolutePanel(id = "controls", class = "panel panel-default", fixed = TRUE,
+      #   draggable = TRUE, top = 60, left = "auto", right = 20, bottom = "auto",
+      #   width = 330, height = "auto",
+      #   h4("Steakhouses finder")
+      # ),
 
-        selectInput("color", "Color", color_vars),
-        selectInput("size", "Size", size_vars, selected = "adultpop"),
-        sliderInput("size_scale", "Size scale:",
-                    min = 10, max = 200, value = 50, step = 5),
-        br(),
-        h4("Filter options"),
-        checkboxInput("open_checkbox", label = "Currently Open", value = TRUE),
-        selectInput("business_category", "Category", category_vars, selected = "adultpop"),
-  
-        sliderInput("reviews", "Minimum number of reviews:",
-                    min = 0, max = 500, value = 10, step = 5), 
-        sliderInput("stars", "Minimum number of stars:",
-                     min = 0, max = 5, value = 0, step = 1)
+        #selectInput("color", "Color", color_vars),
+        #selectInput("size", "Size", size_vars, selected = "adultpop"),
+        #sliderInput("size_scale", "Size scale:",
+        #            min = 10, max = 200, value = 50, step = 5),
+        #br(),
+        #h4("Filter options"),
+        #checkboxInput("open_checkbox", label = "Currently Open", value = TRUE),
+      #   selectInput("business_category", "Category", category_vars, selected = "adultpop"),
+      # 
+      #   sliderInput("reviews", "Minimum number of reviews:",
+      #               min = 0, max = 500, value = 10, step = 5), 
+      #   sliderInput("stars", "Minimum number of stars:",
+      #                min = 0, max = 5, value = 0, step = 1)
+      # ),
+
+      # absolutePanel(id = "controls", class = "panel panel-default", fixed = TRUE,
+      #               draggable = TRUE, top = 400, left = 20, right = 20, bottom = "auto",
+      #               width = 690, height =  "auto",
+      #               tabsetPanel(type = "tabs",
+      #                           tabPanel("Bar chart",plotlyOutput("histRanking", height = 200)),
+      #                           tabPanel("Scatterplot", plotlyOutput("scatterRanking", height = 250)),
+      #                           tabPanel("States summary",plotlyOutput("scatterRanking2", height = 250))
+      #               )
+      # ),
+      absolutePanel(id = "controls", class = "panel panel-default", fixed = TRUE,
+                                  draggable = TRUE, top = 400, left = 20, right = 20, bottom = "auto",
+                                   width = 690, height =  "auto",
+                    h4("The Steakhouse Analysis: "),
+                    br(),
+                    h4("click on the steakhouse you are interested in, or go to 'Steakhouses Finder' to search for it."),
+                    conditionalPanel("input.map_marker_click",
+                                     h4("what the hell"),
+                                     top=20, left=60, height=400, width=200,
+                                     style="padding-left: 10px; padding-right: 8px; padding-top: 8px; padding-bottom: 8px")
       ),
 
-      absolutePanel(id = "controls", class = "panel panel-default", fixed = TRUE,
-                    draggable = TRUE, top = 400, left = 20, right = 20, bottom = "auto",
-                    width = 690, height =  "auto",
-                    tabsetPanel(type = "tabs",
-                                tabPanel("Bar chart",plotlyOutput("histRanking", height = 200)),
-                                tabPanel("Scatterplot", plotlyOutput("scatterRanking", height = 250)),
-                                tabPanel("States summary",plotlyOutput("scatterRanking2", height = 250))
-                    )
-      ),
-
-      tags$div(id="cite",
-        'Big Data ', tags$em('Master EIT Digital - Data Science / Technical University of Madrid by Yolanda de la Hoz Simon.')
-      )
+      # tags$div(id="cite",
+      #   'Big Data ', tags$em('Master EIT Digital - Data Science / Technical University of Madrid by Yolanda de la Hoz Simon.')
+      # )
     )
   ),
 
-  tabPanel("Data explorer",
+  tabPanel("Steakhouses Finder",
     fluidRow(
       column(3,
         selectInput("states", "States", c("All states"="", structure(state.abb, names=state.name), "Washington, DC"="DC"), multiple=TRUE)
