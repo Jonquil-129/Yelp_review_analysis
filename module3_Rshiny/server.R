@@ -8,13 +8,19 @@ library(magrittr)
 library(plotly)
 library(leafletCN)
 
-# Leaflet bindings are a bit slow; for now we'll just sample to compensate
 set.seed(100)
-business.df=read.csv("business_steakhouse.csv")
-# business_data <- business.df[sample.int(nrow(business.df), 60),]
-# # By ordering by centile, we ensure that the (comparatively rare) SuperZIPs
-# # will be drawn last and thus be easier to see
-# business_data <- business_data[order(business.df$stars),]
+#business.df=read.csv("business_steakhouse.csv")
+business.df=read.csv("steak_business.csv")
+f <- function(x) { 
+  aaa=1.79176+3.01248*x[1]+2.17228*x[2]+2.97643*x[3]+3.00886*x[4]-0.52453*x[5]
+  if (aaa>5){
+    return(5)
+  }else if (aaa<0){
+    return(0)
+  }else{
+    return(aaa)
+  }
+}
 
 cleantable <- business.df %>%
   select(
@@ -57,30 +63,10 @@ shinyServer(function(input, output, session) {
              longitude >= lngRng[1] & longitude <= lngRng[2])
   })
   
-  # Filter the business, returning a data frame
-  # zipsIFiltered<- reactive({
-  #   # Due to dplyr issue #318, we need temp variables for input values
-  #   reviews <- input$reviews
-  #   stars_input <- input$stars
-  # 
-  #   # Apply filters
-  #   m <- subset(zipsInBounds(),
-  #               review_count >= reviews &
-  #                 stars >= stars_input)
-  #   
-  #   # Filter by category
-  #   if (input$business_category != "All") {
-  #     m <- m[which(grepl(input$business_category, m$categories)), ]
-  #   }else
-  #     m <- m
-  #   
-  #   # Filter open business
-  #   # if (input$open_checkbox==TRUE) {
-  #   #   m <- m[which(m$open==TRUE), ]
-  #   # }else
-  #   #   m <- m[which(m$open==FALSE), ]
-  #   
-  # })
+  output$value=reactive({
+    f(c(input$topic1,input$topic2,input$topic3,input$topic4,input$topic5))
+  })
+
   # 
   # output$histRanking <- renderPlotly({
   #   colorBy <- input$color
@@ -286,15 +272,16 @@ shinyServer(function(input, output, session) {
   output$ziptable <- DT::renderDataTable({
     df <- cleantable[,1:5] %>%
       filter(
-        Stars >= input$minScore,
-        Stars <= input$maxScore,
+        #Stars >= input$minScore,
+        #Stars <= input$maxScore,
         is.null(input$states) | State %in% input$states,
         is.null(input$cities) | City %in% input$cities,
         is.null(input$zipcodes) | Zipcode %in% input$zipcodes
       ) %>%
       mutate(Action = paste('<a class="go-map" href="" data-zip="', Zipcode, '"><i class="fa fa-crosshairs"></i></a>', sep=""))
     action <- DT::dataTableAjax(session, df)
-    
     DT::datatable(df, options = list(ajax = list(url = action)), escape = FALSE)
   })
+  #output$ziptable = DT::renderDataTable(, server = FALSE, selection = 'single')
+  output$advice = renderPrint(input$ziptable_rows_selected)
 })

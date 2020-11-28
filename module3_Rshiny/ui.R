@@ -81,16 +81,15 @@ shinyUI(navbarPage("Yelp Reviews Analysis", id="nav",
                                      style="padding-left: 10px; padding-right: 8px; padding-top: 8px; padding-bottom: 8px")
       ),
 
-      # tags$div(id="cite",
-      #   'Big Data ', tags$em('Master EIT Digital - Data Science / Technical University of Madrid by Yolanda de la Hoz Simon.')
-      # )
     )
   ),
 
   tabPanel("Steakhouses Finder",
+    sidebarLayout(
+    sidebarPanel(
     fluidRow(
       column(3,
-        selectInput("states", "States", c("All states"="", structure(state.abb, names=state.name), "Washington, DC"="DC"), multiple=TRUE)
+          selectInput("states", "States", c("WI","OH","PA","IL"), multiple=TRUE)
       ),
       column(3,
         conditionalPanel("input.states",
@@ -103,17 +102,46 @@ shinyUI(navbarPage("Yelp Reviews Analysis", id="nav",
         )
       )
     ),
-    fluidRow(
-      column(1,
-        numericInput("minScore", "Min score", min=0, max=100, value=0)
-      ),
-      column(1,
-        numericInput("maxScore", "Max score", min=0, max=100, value=100)
-      )
-    ),
+
     hr(),
     DT::dataTableOutput("ziptable")
   ),
+  mainPanel(
+    
+    p(h4("Use this panel to check how can the improvement help with your rating ",align="center")),
+    tags$head(
+      tags$style("label{font-family: BentonSans Book;}")
+    ),
+    
+    fluidRow(
+      
+      column(4,
+             sliderInput('topic1',  h3("topic1"), min=0, max=0.3, value=0.2, round=0),
+      ),
+      column(4,
+             sliderInput('topic2', label = h3("topic2"), min=0, max=0.3, value=0.2, round=0),
+      ),
+      column(4,
+             sliderInput('topic3', label = h3("topic3"), min=0, max=0.3, value=0.2, round=0),
+      ),
+      column(4, 
+             sliderInput('topic4', label = h3("topic4"), min=0, max=0.3, value=0.2, round=0),
+      ),                  
+      column(4, 
+             sliderInput('topic5', label = h3("topic5"), min=0, max=0.3, value=0.2, round=0),
+      ),
+    ),
+    submitButton("Check"),
+    helpText(h4("Your estimated rating is:"),align="center"),
+    span(textOutput("value"), style="color:black;font-size: 25px",align="center"),
+    
+    fluidRow(
+      h4("Search and select your business at the left-hand side panel, and the advice will be given below.",align="center"),
+      span(textOutput("advice"), style="color:black;font-size: 25px",align="center")
+    )
+  )
 
-  conditionalPanel("false", icon("crosshair"))
-))
+    )
+  
+  #conditionalPanel("false", icon("crosshair"))
+)))
