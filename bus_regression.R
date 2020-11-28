@@ -4,6 +4,7 @@ library(caret)
 library(glmnet)
 library(MVA)
 library(car)
+library(ggplot2)
 pos<-read.csv('pos_bsns.csv')
 neg<-read.csv('neg_bsns.csv')
 bus1<-pos$business_id
@@ -61,33 +62,30 @@ for(i in 7:10){
 }
 
 
-par(mfrow=c(2,4),mar=c(4,4,2,2))
+#################EDA part
 
-library(MVA)
+pairs(steak[6:14])
+#histograms in notebook
+par(mfrow=c(2,4),mar=c(4,4,2,2))
 for (i in 7:14) {
   bvbox(cbind(steak[,i],steak[,6]),col="white",xlab = colnames(steak)[i],ylab="stars")
   text(steak[,i],steak[,6],label=steak$index,col="plum4")
 }
 
-###123 high leverage & influential point (no outlier deleted at first)
+for (i in 7:14) {
+  hist(steak[,i],xlab = "weight", main = "Histogram of variable")
+}
+
+
+
+
+
 ###263 outlier in residual
 
 #142
-steak_rm<-steak[-c(142,263),]
+steak_rm<-steak[-c(142,262),]
 
 
-
-
-
-######EDA part
-
-pairs(steak_rm[6:14])
-#histograms in notebook
-par(mfrow=c(2,4),mar=c(4,4,2,2))
-
-for (i in 7:14) {
-  histogram(stars~steak[,i],data = steak_rm[,6:14])
-}
 
 
 
@@ -100,7 +98,8 @@ if (!require("leaps")) {
   stopifnot(require("leaps"))
 }
 options(width = 90) # just for better views (not required)
-myleaps <- regsubsets(stars~.,data = steak_rm[,6:14], nbest=8) 
+myleaps <- regsubsets(stars~.,data = steak_rm[,6:14], nbest=8)
+myleaps <- regsubsets(stars~(v1+v2+v3+v4+v5+v6+v7+v8)*(1+pa+oh+il),data = steak_rm[,6:19]) 
 (myleaps.summary <- summary(myleaps)) 
 
 bettertable <- cbind(myleaps.summary$which, myleaps.summary$rsq, myleaps.summary$rss,
@@ -110,49 +109,57 @@ show(bettertable)
 par(mfrow=c(1,3), pty="s")
 plot(myleaps, scale = "adjr2"); plot(myleaps, scale = "Cp"); plot(myleaps, scale = "bic");                                                                                          show(bettertable)
 
-m3<-lm(stars~v2+v5+v6+v7+v8,data = steak_rm[,6:14])
-m4<-lm(stars~v5+v6+v7+v8,data = steak[,6:14])
+##不加interaction结果和stepwise一样
+
+#加interactions：
+m3<-lm(stars~v2+v5+v6+v7+v8,data = steak_rm[,6:19])#bic
+m6<-lm(stars~v1+v2+v3+v4+v2:oh+v7:oh+v7:il+v8:oh,data = steak_rm[,6:19])#r2 & cp
+summary(m3)
+summary(m6)
 
 ###stepwise selection
-fit1<-lm(stars~.,data = steak[,6:14])
 fit1<-lm(stars~.,data = steak_rm[,6:14])
-fit2<-lm(stars~(v1+v2+v3+v4+v5+v6+v7+v8)*(1+pa+oh+il),data = steak[,6:17])
-fitnull<-lm(stars~1,data = steak[,6:14])
+fit2<-lm(stars~(v1+v2+v3+v4+v5+v6+v7+v8)*(1+pa+oh+il),data = steak_rm[,6:19])####add state interaction
+fitnull<-lm(stars~1,data = steak_rm[,6:14])
 summary(fit1)
+summary(fit2)
 n<-dim(steak_rm)[1]
-m1<-step(fit1,direction = "both",k=log(n))
-
-m2<-step(fit1,direction = "backward",k=log(n))
-
+m1<-step(fit1,direction = "both",k=log(n))##v2+v5+v6+v7+v8
+#m2<-step(fit1,direction = "backward",k=log(n))
 summary(m1)
-anova(m4,m1)
+
+##state
+m4<-step(fit2,direction = "both",k=log(n))# v1 + v2 + v3 + v4 + v7
+#m5<-step(fit2,direction = "both",k=2)
+summary(m4)
+#anova(m4,m5)
 #########*********final model: m1***********
-
-anova(m1)
-
+anova(m1,m4)
 
 vif(m1)
+vif(m4)
 
 
 ######cross validation
 set.seed(100)
-training.samples <- steak$stars %>%
-  createDataPartition(p = 0.8, list = FALSE)
-train.data  <- steak[training.samples, 6:14]
-test.data <- steak[-training.samples, 6:14]
+#training.samples <- steak$stars %>%
+#  createDataPartition(p = 0.8, list = FALSE)
+#train.data  <- steak[training.samples, 6:14]
+#test.data <- steak[-training.samples, 6:14]
 
 training.samples <- steak_rm$stars %>%
   createDataPartition(p = 0.8, list = FALSE)
-train.data  <- steak_rm[training.samples, 6:17]
-test.data <- steak_rm[-training.samples, 6:17]
+train.data  <- steak_rm[training.samples, 6:19]
+test.data <- steak_rm[-training.samples, 6:19]
 # Build the model
 
 model1 <- lm(formula = stars~v2+v5+v6+v7+v8, data = train.data)
-model2<-lm(formula = stars~v5+v6+v7+v8, data = train.data)
-model1<-lm(formula = stars ~ v1 + v2 + v3 + v4 + v5 + v6 + v7 + pa + 
-             oh + il + v1:pa + v2:pa + v2:oh + v2:il + v3:pa + v3:il + 
-             v4:pa + v5:pa + v5:il + v6:pa + v6:oh + v6:il + v7:pa + v7:il, 
+#model2<-lm(formula = stars~v5+v6+v7+v8, data = train.data)
+model2<-lm(formula = stars ~ v1 + v2 + v3 + v4 + v7, 
            data = train.data)
+model3<-lm(formula = stars ~ v1+v2+v3+v4+v2:oh+v7:oh+v7:il+v8:oh, 
+           data = train.data)
+
 # Make predictions and compute the R2, RMSE and MAE
 predictions <- model1 %>% predict(test.data)
 results1<-data.frame( R2 = R2(predictions, test.data$stars),
@@ -162,11 +169,14 @@ predictions <- model2 %>% predict(test.data)
 results2<-data.frame( R2 = R2(predictions, test.data$stars),
                       RMSE = RMSE(predictions, test.data$stars),
                       MAE = MAE(predictions, test.data$stars))
-
+predictions <- model3 %>% predict(test.data)
+results3<-data.frame( R2 = R2(predictions, test.data$stars),
+                      RMSE = RMSE(predictions, test.data$stars),
+                      MAE = MAE(predictions, test.data$stars))
 
 
 #lasso
-x_var<-as.matrix(train.data[,-c(1,10:12)])
+x_var<-as.matrix(train.data[,-c(1,10:14)])
 y_var<-train.data$stars
 lambda_seq <- 10^seq(2, -2, by = -.1)
 c<-glmnet(x_var, y_var , standardize=TRUE, alpha=1)
@@ -176,7 +186,7 @@ cv_output <- cv.glmnet(x_var, y_var,
 best_lam <- cv_output$lambda.min
 best_lam
 lasso_best <- glmnet(x_var, y_var, alpha = 1, lambda = best_lam)
-pred <- predict(lasso_best, s = best_lam, newx = as.matrix(test.data[,-c(1,10:12)]))
+pred <- predict(lasso_best, s = best_lam, newx = as.matrix(test.data[,-c(1,10:14)]))
 final <- cbind(test.data$stars, pred)
 coef(lasso_best)
 rel<-data.frame( R2 = R2(pred, test.data$stars),
@@ -184,11 +194,11 @@ rel<-data.frame( R2 = R2(pred, test.data$stars),
                  MAE = MAE(pred, test.data$stars))
 colnames(rel)<-c("R2","RMSE","MAE")
 
-(results<-rbind(results1,rel))
+(results<-rbind(results1,results2,rel))
 
 
 #summary(myfit)
-myfit<-m1
+myfit<-m4
 car::Anova(myfit)
 #ci
 confint(myfit)
@@ -200,7 +210,7 @@ par(mfrow=c(1,1))
 qqnorm(rstandard(myfit),pch=19,cex=1.2,cex.lab=1.5,cex.main=1.5,
        main="Normal Q-Q Plot of the Residuals")
 abline(a=0,b=1,col="black",lwd=3)
-text(qqnorm(rstandard(myfit)),labels = steak_rm[,1])#########212,53,135 in steak
+text(qqnorm(rstandard(myfit)),labels = steak[,1],col="darkblue")#########index 263,(61,164) in steak: violate normal & equal variance
 # 1. Types of Residuals and Identifying Outliers
 # compare residuals (raw, standardized, studentized)
 cbind(resid(myfit), rstandard(myfit), rstudent(myfit))
@@ -233,44 +243,48 @@ p <- dim(model.matrix(myfit))[2]
 alpha <- 0.05
 t.critical <- qt(1-alpha/(2*n), n-p-1) # Bonferroni correction 
 abline(h=c(-t.critical, t.critical), col="green")
-text(myfit$fitted.values, rstudent(myfit),label=steak_rm[,1])
-# Outlying in X
+text(myfit$fitted.values, rstudent(myfit),label=steak_rm[,1],col="darkblue")
+# Outlying in X #######some high leverage points: index 174,173,85,138,3 and so on ##m6:~+277,48
 n <- dim(model.matrix(myfit))[1] 
 p <- dim(model.matrix(myfit))[2] 
 plot(myinfluence$hat,type = "n") 
 abline(h=2*p/n, col="red")
 text(myinfluence$hat,label=steak_rm[,1],col="darkblue")
-# 2. Identifying Influential Observations
+# 2. Identifying Influential Observations###########no influential points
 # DFFITS
 dffits(myfit)
-plot(dffits(myfit),type = "n")
+plot(dffits(myfit),ylim=c(-1,1.2),type = "n")
 abline(h=1, col="red") 
 abline(h=2*sqrt(p/n), col="green")
 text(dffits(myfit),label=steak_rm[,1],col="darkblue")
 # Cook's distance
 cooks.distance(myfit)
 plot(myfit, which = 4) 
-plot(cooks.distance(myfit),type = "n") 
+plot(cooks.distance(myfit),ylim = c(0,1.2),type = "n") 
 abline(h=1, col="red")
 abline(h=qf(0.5, p, n-p), col="green") 
 abline(h=4/n, col="blue") 
 abline(h=4/(n-p-1-1), col="orange")
-text(cooks.distance(myfit),label=steak[,1],col="darkblue")
+text(cooks.distance(myfit),label=steak_rm[,1],col="darkblue")
 # DFBETAS
 dfbetas(myfit)
-plot(dfbetas(myfit)[,2],type = "n") # DFBETAS_{1(i)} 
+plot(dfbetas(myfit)[,2],ylim = c(-0.5,1.2),type = "n") # DFBETAS_{1(i)} 
 abline(h=1, col="red")
 abline(h=2/sqrt(n), col="blue")
 text(dfbetas(myfit)[,2],label=steak[,1],col="darkblue")
 
+########conclusion: m4 predicts best, but point 61 seems to be an influential point, maybe outlier here, (if delete, models all become v5+v6+v7+v8)
+
+
+#################plots for diagnostics in one figure####################
 par(mfrow=c(2,2),mar=c(4,1,1,1))
 qqnorm(rstandard(myfit),pch=19,cex=1.2,cex.lab=1.2,cex.main=1.2,
        main="Normal Q-Q Plot of the Residuals")
 abline(a=0,b=1,col="black",lwd=3)
-plot(myfit$fitted.values, rstandard(myfit),ylab = "standardized residual",xlab = "predicted body fat %",main = "standardized residual plot")
+plot(myfit$fitted.values, rstandard(myfit),ylim=c(-4,4),ylab = "standardized residual",xlab = "predicted stars",main = "standardized residual plot")
 plot(myinfluence$hat,type = "n",ylab = "leverage",xlab = "index",main = "leverage plot") 
 abline(h=2*p/n, col="red")
-text(myinfluence$hat,label=newbf[,1],col="darkblue")
+text(myinfluence$hat,label=steak_rm[,1],col="darkblue")
 plot(myfit, which = 4) 
 
 
