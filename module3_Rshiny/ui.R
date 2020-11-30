@@ -92,13 +92,13 @@ shinyUI(navbarPage("Yelp Reviews Analysis", id="nav",
           selectInput("states", "States", c("WI","OH","PA","IL"), multiple=TRUE)
       ),
       column(3,
-        conditionalPanel("input.states",
-          selectInput("cities", "Cities", c("All cities"=""), multiple=TRUE)
+        conditionalPanel("is.na(input.states)==F",
+          selectInput("cities", "Cities", unique(cleantable$City), multiple=TRUE)
         )
       ),
       column(3,
-        conditionalPanel("input.states",
-          selectInput("zipcodes", "Zipcodes", c("All zipcodes"=""), multiple=TRUE)
+        conditionalPanel("is.na(input.states)==F",
+          selectInput("zipcodes", "Zipcodes",as.factor(unique(cleantable$Zipcode)), multiple=TRUE)
         )
       )
     ),
@@ -116,19 +116,19 @@ shinyUI(navbarPage("Yelp Reviews Analysis", id="nav",
     fluidRow(
       
       column(4,
-             sliderInput('topic1',  h3("topic1"), min=0, max=0.5, value=0.2, round=0),
+             sliderInput('topic1',  h3("topic1"), min=0, max=0.3, value=0.2, round=0),
       ),
       column(4,
-             sliderInput('topic2', label = h3("topic2"), min=0, max=0.5, value=0.2, round=0),
+             sliderInput('topic2', label = h3("topic2"), min=0, max=0.3, value=0.2, round=0),
       ),
       column(4,
-             sliderInput('topic3', label = h3("topic3"), min=0, max=0.5, value=0.2, round=0),
+             sliderInput('topic3', label = h3("topic3"), min=0, max=0.3, value=0.2, round=0),
       ),
       column(4, 
-             sliderInput('topic4', label = h3("topic4"), min=0, max=0.5, value=0.2, round=0),
+             sliderInput('topic4', label = h3("topic4"), min=0, max=0.3, value=0.2, round=0),
       ),                  
       column(4, 
-             sliderInput('topic5', label = h3("topic5"), min=0, max=0.5, value=0.2, round=0),
+             sliderInput('topic5', label = h3("topic5"), min=0, max=0.3, value=0.2, round=0),
       ),
     ),
     submitButton("Check"),

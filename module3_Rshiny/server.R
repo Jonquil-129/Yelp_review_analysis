@@ -7,11 +7,11 @@ library(dplyr)
 library(magrittr)
 library(plotly)
 library(leafletCN)
-library(sf)
+library(DT)
 
 set.seed(100)
 #business.df=read.csv("business_steakhouse.csv")
-business.df=read.csv("finalsteak.csv")
+business.df=read.csv("steak_business.csv")
 f <- function(x) { 
   aaa=1.79176+3.01248*x[1]+2.17228*x[2]+2.97643*x[3]+3.00886*x[4]-0.52453*x[5]
   if (aaa>5){
@@ -24,7 +24,7 @@ f <- function(x) {
 }
 
 cleantable <- business.df %>%
-  select(
+  dplyr::select(
     Name= name,
     City = city,
     State = state,
@@ -33,9 +33,6 @@ cleantable <- business.df %>%
     Lat = latitude,
     Long = longitude
   )
-
-#shape <- st_read("cb_2018_us_state_500k.shp") %>% 
-#  st_transform(shape, crs = 4326)
 
 shinyServer(function(input, output, session) {
   
@@ -49,7 +46,6 @@ shinyServer(function(input, output, session) {
       #  urlTemplate = "//{s}.tiles.mapbox.com/v3/jcheng.map-5ebohr46/{z}/{x}/{y}.png",
       #  attribution = 'Maps by <a href="http://www.mapbox.com/">Mapbox</a>'
       #) %>%
-#      addMarkers(~longitude, ~latitude, popup = paste("good topics:",business.df$v1,business.df$v2), label = ~name)  %>% 
       addMarkers(~longitude, ~latitude, popup = ~name, label = ~name)  %>% 
       setView(lng = -93.85, lat = 37.45, zoom = 4)
   })
@@ -275,18 +271,9 @@ shinyServer(function(input, output, session) {
   })
   
   output$ziptable <- DT::renderDataTable({
-    df <- cleantable[,1:5] %>%
-      filter(
-        #Stars >= input$minScore,
-        #Stars <= input$maxScore,
-        is.null(input$states) | State %in% input$states,
-        is.null(input$cities) | City %in% input$cities,
-        is.null(input$zipcodes) | Zipcode %in% input$zipcodes
-      ) %>%
-      mutate(Action = paste('<a class="go-map" href="" data-zip="', Zipcode, '"><i class="fa fa-crosshairs"></i></a>', sep=""))
-    action <- DT::dataTableAjax(session, df)
-    DT::datatable(df, options = list(ajax = list(url = action)), escape = FALSE)
-  })
+    cleantable[,1:5]
+},filter='top',
+  rownames=FALSE)
   #output$ziptable = DT::renderDataTable(, server = FALSE, selection = 'single')
   output$advice = renderPrint(input$ziptable_rows_selected)
 })
