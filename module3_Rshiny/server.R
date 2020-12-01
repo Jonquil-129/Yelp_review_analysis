@@ -10,8 +10,8 @@ library(leafletCN)
 library(DT)
 
 set.seed(100)
-#business.df=read.csv("business_steakhouse.csv")
-business.df=read.csv("steak_business.csv")
+business.df=read.csv("finalsteak.csv",header = T)
+
 f <- function(x) { 
   aaa=1.79176+3.01248*x[1]+2.17228*x[2]+2.97643*x[3]+3.00886*x[4]-0.52453*x[5]
   if (aaa>5){
@@ -23,20 +23,19 @@ f <- function(x) {
   }
 }
 
-cleantable <- business.df %>%
-  dplyr::select(
-    Name= name,
-    City = city,
-    State = state,
-    Zipcode = postal_code,
-    Stars = stars,
-    Lat = latitude,
-    Long = longitude
-  )
-
 shinyServer(function(input, output, session) {
   
   ## Interactive Map ###########################################
+  cleantable <- business.df %>%
+    select(
+      Name= name,
+      City = city,
+      State = state,
+      Zipcode = postal_code,
+      Stars = stars,
+      Lat = latitude,
+      Long = longitude
+    )
   
   # Create the map
   output$map <- renderLeaflet({
@@ -271,9 +270,7 @@ shinyServer(function(input, output, session) {
   })
   
   output$ziptable <- DT::renderDataTable({
-    cleantable[,1:5]
-},filter='top',
-  rownames=FALSE)
-  #output$ziptable = DT::renderDataTable(, server = FALSE, selection = 'single')
+    cleantable[,1:5]},filter='top',rownames=FALSE,selection='single',server = FALSE,)
+
   output$advice = renderPrint(input$ziptable_rows_selected)
 })

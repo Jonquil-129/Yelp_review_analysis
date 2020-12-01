@@ -87,23 +87,23 @@ shinyUI(navbarPage("Yelp Reviews Analysis", id="nav",
   tabPanel("Steakhouses Finder",
     sidebarLayout(
     sidebarPanel(
-    fluidRow(
-      column(3,
-          selectInput("states", "States", c("WI","OH","PA","IL"), multiple=TRUE)
-      ),
-      column(3,
-        conditionalPanel("is.na(input.states)==F",
-          selectInput("cities", "Cities", unique(cleantable$City), multiple=TRUE)
-        )
-      ),
-      column(3,
-        conditionalPanel("is.na(input.states)==F",
-          selectInput("zipcodes", "Zipcodes",as.factor(unique(cleantable$Zipcode)), multiple=TRUE)
-        )
-      )
-    ),
-
-    hr(),
+    # fluidRow(
+    #   column(3,
+    #       selectInput("states", "States", c("WI","OH","PA","IL"), multiple=TRUE)
+    #   ),
+    #   column(3,
+    #     conditionalPanel("is.na(input.states)==F",
+    #       selectInput("cities", "Cities", unique(cleantable$City), multiple=TRUE)
+    #     )
+    #   ),
+    #   column(3,
+    #     conditionalPanel("is.na(input.states)==F",
+    #       selectInput("zipcodes", "Zipcodes",as.factor(unique(cleantable$Zipcode)), multiple=TRUE)
+    #     )
+    #   )
+    # ),
+    # 
+    # hr(),
     DT::dataTableOutput("ziptable")
   ),
   mainPanel(
