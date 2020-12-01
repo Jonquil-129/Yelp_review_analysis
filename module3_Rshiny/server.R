@@ -7,8 +7,7 @@ library(dplyr)
 library(magrittr)
 library(plotly)
 library(leafletCN)
-library(DT)
-
+library(rsconnect)
 set.seed(100)
 business.df=read.csv("finalsteak.csv",header = T)
 
@@ -39,6 +38,10 @@ analysis_table$relative_v2=analysis_table$v2-mean(analysis_table$v2)
 analysis_table$relative_v3=analysis_table$v3-mean(analysis_table$v3)
 analysis_table$relative_v4=analysis_table$v4-mean(analysis_table$v4)
 analysis_table$relative_v7=analysis_table$v7-mean(analysis_table$v7)
+
+
+
+
 shinyServer(function(input, output, session) {
   
   ## Interactive Map ###########################################
@@ -76,12 +79,6 @@ shinyServer(function(input, output, session) {
   
   observeEvent(input$map_marker_click, {
     click <- input$map_marker_click
-   # text<-paste("Lattitude ", click$lat, "Longtitude ", click$lng)
-   # text2 <- paste("YOUVE CLICKED THE MAP!!!",click$lat, click$lng)
-    
-    # proxy <- leafletProxy("map")
-    # proxy %>% clearPopups() %>%
-    #   addPopups(click$lng, click$lat, text)
     
     output$Click_text<-renderText({text2})
   })

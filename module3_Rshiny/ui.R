@@ -1,7 +1,6 @@
 library(shiny)
 library(leaflet)
 library(plotly)
-library(DT)
 
 shinyUI(navbarPage("Yelp Reviews Analysis", id="nav",
 
@@ -20,11 +19,14 @@ shinyUI(navbarPage("Yelp Reviews Analysis", id="nav",
       absolutePanel(id = "controls", class = "panel panel-default", fixed = TRUE,
                                   draggable = TRUE, top = 400, left = 20, right = 20, bottom = "auto",
                                    width = 690, height =  "auto",
-                    h4("The Steakhouse Analysis: "),
+                    h4("The Steakhouse overal average rating is 3.245223."),
                     br(),
-                    h4("click on the steakhouse you are interested in, or go to 'Steakhouses Finder' to search for it."),
-                    conditionalPanel("input.map_marker_click",
-                                     h4("what the hell"),
+                    h4("click on map to see the average rating in each state"),
+                    conditionalPanel("input.map_click",
+                                     h4("OH:3.261628"),
+                                     h4("WI:3.267442"),
+                                     h4("PA:3.216867"),
+                                     h4("IL:3.15625"),
                                      top=20, left=60, height=400, width=200,
                                      style="padding-left: 10px; padding-right: 8px; padding-top: 8px; padding-bottom: 8px")
       ),
