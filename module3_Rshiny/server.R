@@ -141,11 +141,11 @@ shinyServer(function(input, output, session) {
     text(cleantable[input$ziptable_rows_selected+0.5,5],0.6,"You are here!",col = "red")
   })
   
-  output$relative_star=reactive(analysis_table$relative_star[input$ziptable_rows_selected])
-  output$relative_v1=reactive(analysis_table$relative_v1[input$ziptable_rows_selected])
-  output$relative_v2=reactive(analysis_table$relative_v2[input$ziptable_rows_selected])
-  output$relative_v3=reactive(analysis_table$relative_v3[input$ziptable_rows_selected])
-  output$relative_v4=reactive(analysis_table$relative_v4[input$ziptable_rows_selected])
-  output$relative_v7=reactive(analysis_table$relative_v7[input$ziptable_rows_selected])
+  output$relative_star=reactive({analysis_table$relative_star[input$ziptable_rows_selected]})
+  output$relative_v1=reactive({analysis_table$relative_v1[input$ziptable_rows_selected]})
+  output$relative_v2=reactive({analysis_table$relative_v2[input$ziptable_rows_selected]})
+  output$relative_v3=reactive({analysis_table$relative_v3[input$ziptable_rows_selected]})
+  output$relative_v4=reactive({analysis_table$relative_v4[input$ziptable_rows_selected]})
+  output$relative_v7=reactive({analysis_table$relative_v7[input$ziptable_rows_selected]})
   
   })
