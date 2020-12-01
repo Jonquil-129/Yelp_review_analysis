@@ -5,8 +5,6 @@ account: jonquil-129
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 3280278
-bundleId: 3889295
+bundleId: 3928500
 url: https://jonquil-129.shinyapps.io/module3_Rshiny/
-when: 1605995688.60028
-asMultiple: FALSE
-asStatic: FALSE
+when: 1606843197.80333
