@@ -5,6 +5,8 @@ library(glmnet)
 library(MVA)
 library(car)
 library(ggplot2)
+library(plotly)
+library(ggcorrplot)
 pos<-read.csv('pos_bsns.csv')
 neg<-read.csv('neg_bsns.csv')
 bus1<-pos$business_id
@@ -62,9 +64,15 @@ for(i in 7:10){
 }
 
 
-#################EDA part
 
-pairs(steak[6:14])
+
+
+
+#################EDA part
+cr<-cor(steak[,6:14], method = "pearson")
+ggcorrplot::ggcorrplot(cr)
+
+pairs(steak[,6:14])
 #histograms in notebook
 par(mfrow=c(2,4),mar=c(4,4,2,2))
 for (i in 7:14) {
@@ -72,10 +80,12 @@ for (i in 7:14) {
   text(steak[,i],steak[,6],label=steak$index,col="plum4")
 }
 
-for (i in 7:14) {
-  hist(steak[,i],xlab = "weight", main = "Histogram of variable")
-}
 
+library(gridExtra)
+out1 = lapply(steak[,7:14], function(x){
+  ggplot(data.frame(x), aes(x)) + geom_histogram(bins=30)+labs(x="Weight of Topic", y = "Count")})
+
+grid.arrange(out1[[1]],out1[[2]],out1[[3]],out1[[4]],out1[[5]],out1[[6]],out1[[7]],out1[[8]], ncol=4)
 
 
 
@@ -118,6 +128,7 @@ summary(m3)
 summary(m6)
 
 ###stepwise selection
+#fit1<-lm(stars~.,data = steak[,6:14])
 fit1<-lm(stars~.,data = steak_rm[,6:14])
 fit2<-lm(stars~(v1+v2+v3+v4+v5+v6+v7+v8)*(1+pa+oh+il),data = steak_rm[,6:19])####add state interaction
 fitnull<-lm(stars~1,data = steak_rm[,6:14])
@@ -130,16 +141,17 @@ summary(m1)
 
 ##state
 m4<-step(fit2,direction = "both",k=log(n))# v1 + v2 + v3 + v4 + v7
-#m5<-step(fit2,direction = "both",k=2)
+m5<-step(fit2,direction = "both",k=2)
 summary(m4)
 #anova(m4,m5)
-#########*********final model: m1***********
+#########*********final model: m4***********
 anova(m1,m4)
+anova(m4)
 
 vif(m1)
 vif(m4)
 
-
+anova(m4,fit1)
 ######cross validation
 set.seed(100)
 #training.samples <- steak$stars %>%
@@ -152,14 +164,17 @@ training.samples <- steak_rm$stars %>%
 train.data  <- steak_rm[training.samples, 6:19]
 test.data <- steak_rm[-training.samples, 6:19]
 # Build the model
-
+model1<-lm(formula = stars~., data = train.data)
 model1 <- lm(formula = stars~v2+v5+v6+v7+v8, data = train.data)
 #model2<-lm(formula = stars~v5+v6+v7+v8, data = train.data)
 model2<-lm(formula = stars ~ v1 + v2 + v3 + v4 + v7, 
            data = train.data)
 model3<-lm(formula = stars ~ v1+v2+v3+v4+v2:oh+v7:oh+v7:il+v8:oh, 
            data = train.data)
-
+model5<-lm(formula = stars ~ v1 + v2 + v3 + v4 + v5 + v6 + v7 + v8 + 
+             pa + oh + il + v1:pa + v1:oh + v2:pa + v2:oh + v3:pa + v3:oh + 
+             v4:pa + v4:oh + v5:pa + v5:oh + v6:pa + v6:oh + v7:pa + v7:oh + 
+             v7:il + v8:pa, data = train.data)
 # Make predictions and compute the R2, RMSE and MAE
 predictions <- model1 %>% predict(test.data)
 results1<-data.frame( R2 = R2(predictions, test.data$stars),
@@ -171,6 +186,10 @@ results2<-data.frame( R2 = R2(predictions, test.data$stars),
                       MAE = MAE(predictions, test.data$stars))
 predictions <- model3 %>% predict(test.data)
 results3<-data.frame( R2 = R2(predictions, test.data$stars),
+                      RMSE = RMSE(predictions, test.data$stars),
+                      MAE = MAE(predictions, test.data$stars))
+predictions <- model5 %>% predict(test.data)
+results5<-data.frame( R2 = R2(predictions, test.data$stars),
                       RMSE = RMSE(predictions, test.data$stars),
                       MAE = MAE(predictions, test.data$stars))
 
@@ -194,12 +213,12 @@ rel<-data.frame( R2 = R2(pred, test.data$stars),
                  MAE = MAE(pred, test.data$stars))
 colnames(rel)<-c("R2","RMSE","MAE")
 
-(results<-rbind(results1,results2,rel))
+(results<-rbind(results1,results2,results3,rel))
 
 
 #summary(myfit)
 myfit<-m4
-car::Anova(myfit)
+car::Anova(myfit,type=3)
 #ci
 confint(myfit)
 
@@ -273,11 +292,11 @@ abline(h=1, col="red")
 abline(h=2/sqrt(n), col="blue")
 text(dfbetas(myfit)[,2],label=steak[,1],col="darkblue")
 
-########conclusion: m4 predicts best, but point 61 seems to be an influential point, maybe outlier here, (if delete, models all become v5+v6+v7+v8)
+########conclusion: m4 predicts best, but point 61 may be an influential point, (if delete, models all become v5+v6+v7+v8)
 
 
 #################plots for diagnostics in one figure####################
-par(mfrow=c(2,2),mar=c(4,1,1,1))
+par(mfrow=c(2,2),mar=c(4,4,1,1))
 qqnorm(rstandard(myfit),pch=19,cex=1.2,cex.lab=1.2,cex.main=1.2,
        main="Normal Q-Q Plot of the Residuals")
 abline(a=0,b=1,col="black",lwd=3)
