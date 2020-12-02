@@ -1,9 +1,9 @@
-font_home <- function(path = '') file.path('~', '.fonts', path)
-if (Sys.info()[['sysname']] == 'Linux') {
-  dir.create(font_home())
-  file.copy('wqy-zenhei.ttc', font_home())
-  system2('fc-cache', paste('-f', font_home()))
-}
+# font_home <- function(path = '') file.path('~', '.fonts', path)
+# if (Sys.info()[['sysname']] == 'Linux') {
+#   dir.create(font_home())
+#   file.copy('wqy-zenhei.ttc', font_home())
+#   system2('fc-cache', paste('-f', font_home()))
+# }
 
 library(shiny)
 require(DT)
@@ -32,10 +32,10 @@ shinyUI(navbarPage("Yelp Reviews Analysis", id="nav",
                     br(),
                     h4("click on map to see the average rating in each state"),
                     conditionalPanel("input.map_click",
-                                     h4("OH:3.261628"),
-                                     h4("WI:3.267442"),
-                                     h4("PA:3.216867"),
-                                     h4("IL:3.15625"),
+                                     h4("OH: 3.261628", "Steakhouse with highest rating: Tavern At Twin Lakes"),
+                                     h4("WI: 3.267442", "Steakhouse with highest rating: Grandview Saloon"),
+                                     h4("PA: 3.216867", "Steakhouse with highest rating: Grandview Saloon"),
+                                     h4("IL: 3.15625", "Steakhouse with highest rating: Pittsburgh Rare"),
                                      top=20, left=60, height=400, width=200,
                                      style="padding-left: 10px; padding-right: 8px; padding-top: 8px; padding-bottom: 8px")
       ),
@@ -58,16 +58,16 @@ shinyUI(navbarPage("Yelp Reviews Analysis", id="nav",
     fluidRow(
       
       column(4,
-             sliderInput('topic1',  h3("Bar"), min=0, max=0.3, value=0.2, round=0)
+             sliderInput('topic1',  h3("Alcohol/Bar"), min=0, max=0.3, value=0.2, round=0)
       ),
       column(4,
-             sliderInput('topic2', label = h3("Cheese curds"), min=0, max=0.3, value=0.2, round=0)
+             sliderInput('topic2', label = h3("Other food/ Cheese curds"), min=0, max=0.3, value=0.2, round=0)
       ),
       column(4,
-             sliderInput('topic3', label = h3("Service and atmosphere"), min=0, max=0.3, value=0.2, round=0)
+             sliderInput('topic3', label = h3("Atmosphere"), min=0, max=0.3, value=0.2, round=0)
       ),
       column(4, 
-             sliderInput('topic4', label = h3("Quality of Steaks"), min=0, max=0.3, value=0.2, round=0)
+             sliderInput('topic4', label = h3("Quality of Steaks / Steak temperature"), min=0, max=0.3, value=0.2, round=0)
       ),                  
       column(4, 
              sliderInput('topic5', label = h3("Service time"), min=0, max=0.3, value=0.2, round=0)
